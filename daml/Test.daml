@@ -49,3 +49,23 @@ testChangeTextDocumentWithOpenReview = script do
         exerciseCmd testReview Approve
 
     return ()
+
+testDocumentInReview : Script ()
+testDocumentInReview = script do
+    return ()
+
+
+testDocumentInReviewOutOfTime : Script ()
+testDocumentInReviewOutOfTime = script do
+    return ()
+
+
+testDocumentApprovedInTime : Script ()
+testDocumentInReview = script do
+    return ()
+
+
+testDocumentApprovedOutOfTime : Script ()
+testDocumentInReview = script do
+    return ()
+

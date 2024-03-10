@@ -1,8 +1,10 @@
 module Main where
 
+import DA.Date
+
 type DocumentId = ContractId Document
 
-data ReviewState = OPEN | IN_REVIEW | COMPLETED
+data ReviewState = OPEN | IN_REVIEW | APPROVED
   deriving (Eq, Show)
 
 
@@ -23,18 +25,49 @@ template DocumentReview
 
     choice Approve: ()
       controller reviewer
-      do 
-        archive self
-        return ()
+      do
+        nowTime <- getTime
+        let now = toDateUTC nowTime
+
+        if (now >= expDate) then
+          archive self
+        else do
+          updatedReview <- create this with 
+            requester
+            document
+            reviewer
+            expDate
+            note
+            state = APPROVED
+          return ()
 
 
+    choice Review: ContractId DocumentReview
+      with 
+        comment: Text 
+      controller reviewer
+      do
+        nowTime <- getTime
+        let now = toDateUTC nowTime
+
+        if (now >= expDate) then
+          archive self
+        else do
+          updatedReview <- create this with 
+            requester
+            document
+            reviewer
+            expDate
+            note = Some (comment)
+            state = IN_REVIEW
+          return()
+        
 
 template Document
   with 
     owner: Party 
     name: Text
     content: Text
-    nApprovals: Int
   where 
     signatory owner
     key (owner, name): (Party, Text)
@@ -62,7 +95,7 @@ template Document
       controller owner
       do
         -- Create a copy of the current document with 0 approvals
-        newDocument <- create this with content = newContent, nApprovals = 0
+        newDocument <- create this with content = newContent
         -- Fetch all related DocumentReview contracts
         maybeReviewId: Optional(ContractId DocumentReview) <- lookupByKey @DocumentReview (owner, this)
 
@@ -72,6 +105,7 @@ template Document
           Some reviewId  -> do
              archive reviewId
              return newDocument
+
 
 
 
