@@ -1,0 +1,20 @@
+module Test where
+
+import Main
+import Setup
+import DA.Date
+import Daml.Script
+
+testCreateDocumentReview = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
+    -- 1. proposer creates a ProjectProposal contract
+    review <- submit requester do
+        createCmd DocumentReview with
+            requester
+            document = doc1
+            reviewer = reviewer1
+            expDate = date 2023 Apr 10
+            note = Some("")
+            state = OPEN
+            
+    return (testParties, review)

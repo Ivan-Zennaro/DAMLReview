@@ -44,6 +44,40 @@ setupDocuments = script do
     return (testParties, TestDocuments with {doc1, doc2})
 
 
+setupReviews : Script (TestParties, TestDocuments, [ContractId DocumentReview])
+setupReviews = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
+    
+    doc1_rev1 <- submit requester do
+        createCmd DocumentReview with
+            requester
+            document = doc1
+            reviewer = reviewer1
+            expDate = date 2023 Apr 10
+            note = Some("")
+            state = OPEN
+    
+    doc1_rev2 <- submit requester do
+        createCmd DocumentReview with
+            requester
+            document = doc1
+            reviewer = reviewer2
+            expDate = date 2023 Apr 10
+            note = Some("")
+            state = OPEN
+
+    doc2_rev1 <- submit requester do
+        createCmd DocumentReview with
+            requester
+            document = doc2
+            reviewer = reviewer1
+            expDate = date 2023 Apr 10
+            note = Some("")
+            state = OPEN
+
+    return (testParties, TestDocuments with {doc1, doc2}, [doc1_rev1, doc1_rev2, doc2_rev1])
+
+
 setupEnv : Script (ContractId DocumentReview)
 setupEnv = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
