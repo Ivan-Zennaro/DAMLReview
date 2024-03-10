@@ -1,44 +1,38 @@
 module Main where
 
-import Daml.Script
+type DocumentId = ContractId Document
 
-type AssetId = ContractId Asset
+data ReviewState = OPEN | IN_REVIEW | COMPLETED
+  deriving (Eq, Show)
 
-template Asset
+
+template DocumentReview
   with
-    issuer : Party
-    owner  : Party
-    name   : Text
-  where
-    ensure name /= ""
-    signatory issuer
-    observer owner
-    choice Give : AssetId
-      with
-        newOwner : Party
-      controller owner
-      do create this with
-           owner = newOwner
+    requester: Party
+    document: Document
+    reviewer: Party
+    expDate: Date
+    note: Optional(Text)
+    state: ReviewState
+  where 
+    signatory requester
+    observer reviewer
 
-setup : Script AssetId
-setup = script do
--- user_setup_begin
-  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
-  bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
-  aliceId <- validateUserId "alice"
-  bobId <- validateUserId "bob"
-  createUser (User aliceId (Some alice)) [CanActAs alice]
-  createUser (User bobId (Some bob)) [CanActAs bob]
--- user_setup_end
 
-  aliceTV <- submit alice do
-    createCmd Asset with
-      issuer = alice
-      owner = alice
-      name = "TV"
+template Document
+  with 
+    owner: Party 
+    name: Text
+    content: Text
+    nApprovals: Int
+  where 
+    signatory owner
+    key (owner, name): (Party, Text)
+    maintainer key._1
 
-  bobTV <- submit alice do
-    exerciseCmd aliceTV Give with newOwner = bob
+    
 
-  submit bob do
-    exerciseCmd bobTV Give with newOwner = alice
+
+
+
+
