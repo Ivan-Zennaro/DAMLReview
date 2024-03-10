@@ -5,15 +5,6 @@ import Setup
 import DA.Date
 import Daml.Script
 
-testCreateNewReview = script do
-    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
-
-    newReview <- submit testRequester do
-        exerciseCmd testDoc2 OpenReview with
-            reviewer = testReviewer2
-            expDate = date 2023 Apr 10 
-    return ()
-
 
 testCantCreateAnotherReview = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
@@ -50,22 +41,91 @@ testChangeTextDocumentWithOpenReview = script do
 
     return ()
 
-testDocumentInReview : Script ()
-testDocumentInReview = script do
+
+
+testDocumentApprovedInTime : Script ()
+testDocumentApprovedInTime = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    res <- submit testReviewer1 do
+        exerciseCmd testReview Approve 
+
+    case res of
+        Right contractId -> do
+            maybeContract <- queryContractId testRequester contractId
+            case maybeContract of 
+                Some review -> do    
+                    assert (review.state == APPROVED)
+                None -> do 
+                   fail "Fails: impossible to retrieve contract"
+        Left text -> do
+            fail "Fails: contract expired"
+            
+    return ()
+
+
+testDocumentApprovedOutOfTime : Script ()
+testDocumentApprovedOutOfTime = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    res <- submit testReviewer2 do
+        exerciseCmd testReview2 Approve 
+
+    case res of
+        Right contractId -> do
+            maybeContract <- queryContractId testRequester contractId
+            fail "Contract is not expired as expected"
+        Left text -> do
+            debug "Contract is expired as expected"
+            
+    return ()
+
+
+testDocumentInReviewInTime : Script ()
+testDocumentInReviewInTime = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    res <- submit testReviewer1 do
+        exerciseCmd testReview Review with
+            comment = "Still work to do!"
+
+    case res of
+        Right contractId -> do
+            maybeContract <- queryContractId testRequester contractId
+            case maybeContract of 
+                Some review -> do    
+                    assert (review.state == IN_REVIEW)
+                None -> do 
+                   fail "Fails: impossible to retrieve contract"
+        Left text -> do
+            fail "Fails: contract expired"
+            
     return ()
 
 
 testDocumentInReviewOutOfTime : Script ()
 testDocumentInReviewOutOfTime = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    res <- submit testReviewer2 do
+        exerciseCmd testReview2 Review with
+            comment = "Still work to do!"
+
+    case res of
+        Right contractId -> do
+            maybeContract <- queryContractId testRequester contractId
+            fail "Contract is not expired as expected"
+        Left text -> do
+            debug "Contract is expired as expected"
+            
     return ()
 
 
-testDocumentApprovedInTime : Script ()
-testDocumentInReview = script do
+testFailWhenWrongAprover : Script ()
+testFailWhenWrongAprover = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    res <- submitMustFail testReviewer1 do
+        exerciseCmd testReview2 Approve 
+   
     return ()
-
-
-testDocumentApprovedOutOfTime : Script ()
-testDocumentInReview = script do
-    return ()
-

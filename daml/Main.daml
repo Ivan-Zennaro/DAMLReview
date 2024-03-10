@@ -23,14 +23,15 @@ template DocumentReview
     key (requester, document): (Party, Document)
     maintainer key._1
 
-    choice Approve: ()
+    choice Approve: Either (Text) (ContractId DocumentReview)
       controller reviewer
       do
         nowTime <- getTime
         let now = toDateUTC nowTime
 
         if (now >= expDate) then
-          archive self
+          return (Left "Expired")
+        
         else do
           updatedReview <- create this with 
             requester
@@ -39,10 +40,10 @@ template DocumentReview
             expDate
             note
             state = APPROVED
-          return ()
+          return (Right updatedReview)
 
 
-    choice Review: ContractId DocumentReview
+    choice Review: Either (Text) (ContractId DocumentReview)
       with 
         comment: Text 
       controller reviewer
@@ -51,7 +52,7 @@ template DocumentReview
         let now = toDateUTC nowTime
 
         if (now >= expDate) then
-          archive self
+          return (Left "Expired")
         else do
           updatedReview <- create this with 
             requester
@@ -60,7 +61,12 @@ template DocumentReview
             expDate
             note = Some (comment)
             state = IN_REVIEW
-          return()
+          return (Right updatedReview)
+    
+    nonconsuming choice Status: ReviewState
+      controller requester, reviewer
+      do 
+        return this.state
         
 
 template Document

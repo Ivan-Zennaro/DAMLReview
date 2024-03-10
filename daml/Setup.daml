@@ -15,6 +15,7 @@ data TestDocuments = TestDocuments with
 
 data TestReviews = TestReviews with
     testReview: ContractId DocumentReview
+    testReview2: ContractId DocumentReview
 
 
 setupTestParties : Script TestParties
@@ -37,21 +38,24 @@ setupReviews = script do
             owner = testRequester
             name = "Doc1"
             content = "Content1"
-            nApprovals = 0
     
     testDoc2 <- submit testRequester do
         createCmd Document with
             owner = testRequester
             name = "Doc2"
             content = "Content2"
-            nApprovals = 2
     
     testReview <- submit testRequester do
         exerciseCmd testDoc1 OpenReview with
             reviewer = testReviewer1
-            expDate = date 2023 Apr 10
+            expDate = date 2027 Apr 10
 
-    return (testParties, TestDocuments with {testDoc1, testDoc2}, TestReviews with {testReview})
+    testReview2 <- submit testRequester do
+        exerciseCmd testDoc2 OpenReview with
+            reviewer = testReviewer2
+            expDate = date 1000 Apr 10
+
+    return (testParties, TestDocuments with {testDoc1, testDoc2}, TestReviews with {testReview, testReview2})
 
 
 
