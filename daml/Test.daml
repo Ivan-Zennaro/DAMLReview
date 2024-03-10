@@ -5,16 +5,47 @@ import Setup
 import DA.Date
 import Daml.Script
 
-testCreateDocumentReview = script do
-    (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
-    -- 1. proposer creates a ProjectProposal contract
-    review <- submit requester do
-        createCmd DocumentReview with
-            requester
-            document = doc1
-            reviewer = reviewer1
+testCreateNewReview = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    newReview <- submit testRequester do
+        exerciseCmd testDoc2 OpenReview with
+            reviewer = testReviewer2
+            expDate = date 2023 Apr 10 
+    return ()
+
+
+testCantCreateAnotherReview = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    newReview <- submitMustFail testRequester do
+        exerciseCmd testDoc1 OpenReview with
+            reviewer = testReviewer2
             expDate = date 2023 Apr 10
-            note = Some("")
-            state = OPEN
-            
-    return (testParties, review)
+    return ()
+
+
+testChangeBasicTextDocument : Script ()
+testChangeBasicTextDocument = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    submit testRequester do
+        exerciseCmd testDoc2 ChangeContentAndCancelReviews 
+            with
+                newContent = "NewText"
+    return ()
+
+testChangeTextDocumentWithOpenReview : Script ()
+testChangeTextDocumentWithOpenReview = script do
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
+
+    submit testRequester do
+        exerciseCmd testDoc1 ChangeContentAndCancelReviews 
+            with
+                newContent = "NewText"
+
+    -- testReview has been archived
+    submitMustFail testReviewer1 do
+        exerciseCmd testReview Approve
+
+    return ()

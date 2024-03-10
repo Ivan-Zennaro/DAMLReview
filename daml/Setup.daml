@@ -5,98 +5,67 @@ import DA.Date
 import Daml.Script
 
 data TestParties = TestParties with
-    requester: Party
-    reviewer1: Party
-    reviewer2: Party
+    testRequester: Party
+    testReviewer1: Party
+    testReviewer2: Party
 
 data TestDocuments = TestDocuments with
-    doc1: Document
-    doc2: Document
+    testDoc1: ContractId Document
+    testDoc2: ContractId Document
+
+data TestReviews = TestReviews with
+    testReview: ContractId DocumentReview
 
 
 setupTestParties : Script TestParties
 setupTestParties = script do
-    requester <- allocatePartyWithHint "Requester" (PartyIdHint "REQ")
-    reviewer1 <- allocatePartyWithHint "Reviewer1" (PartyIdHint "RV1")
-    reviewer2 <- allocatePartyWithHint "Reviewer2" (PartyIdHint "RV2")
+    testRequester <- allocatePartyWithHint "Requester" (PartyIdHint "REQ")
+    testReviewer1 <- allocatePartyWithHint "Reviewer1" (PartyIdHint "RV1")
+    testReviewer2 <- allocatePartyWithHint "Reviewer2" (PartyIdHint "RV2")
 
     return TestParties with
-        requester
-        reviewer1
-        reviewer2
+        testRequester
+        testReviewer1
+        testReviewer2
 
-setupDocuments : Script (TestParties, TestDocuments)
-setupDocuments = script do
-    testParties@TestParties{..} <- setupTestParties
-    let
-        doc1 = Document with
-            owner = requester
+setupReviews : Script (TestParties, TestDocuments, TestReviews)
+setupReviews = script do
+    (testParties@TestParties{..}) <- setupTestParties
+
+    testDoc1 <- submit testRequester do
+        createCmd Document with
+            owner = testRequester
             name = "Doc1"
             content = "Content1"
             nApprovals = 0
-        
-        doc2 = Document with
-            owner = requester
+    
+    testDoc2 <- submit testRequester do
+        createCmd Document with
+            owner = testRequester
             name = "Doc2"
             content = "Content2"
             nApprovals = 2
-
-    return (testParties, TestDocuments with {doc1, doc2})
-
-
-setupReviews : Script (TestParties, TestDocuments, [ContractId DocumentReview])
-setupReviews = script do
-    (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
     
-    doc1_rev1 <- submit requester do
-        createCmd DocumentReview with
-            requester
-            document = doc1
-            reviewer = reviewer1
+    testReview <- submit testRequester do
+        exerciseCmd testDoc1 OpenReview with
+            reviewer = testReviewer1
             expDate = date 2023 Apr 10
-            note = Some("")
-            state = OPEN
-    
-    doc1_rev2 <- submit requester do
-        createCmd DocumentReview with
-            requester
-            document = doc1
-            reviewer = reviewer2
-            expDate = date 2023 Apr 10
-            note = Some("")
-            state = OPEN
 
-    doc2_rev1 <- submit requester do
-        createCmd DocumentReview with
-            requester
-            document = doc2
-            reviewer = reviewer1
-            expDate = date 2023 Apr 10
-            note = Some("")
-            state = OPEN
-
-    return (testParties, TestDocuments with {doc1, doc2}, [doc1_rev1, doc1_rev2, doc2_rev1])
+    return (testParties, TestDocuments with {testDoc1, testDoc2}, TestReviews with {testReview})
 
 
-setupEnv : Script (ContractId DocumentReview)
+
+setupEnv : Script ()
 setupEnv = script do
-    (testParties@TestParties{..}, testDocuments@TestDocuments{..}) <- setupDocuments
+    (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
 
     reqId <- validateUserId "Alice"   
     rev1Id <- validateUserId "Prof. John"
     rev2Id <- validateUserId "Prof. Mike"
 
-    createUser (User reqId (Some requester)) [CanActAs requester]  
-    createUser (User rev1Id (Some reviewer1)) [CanActAs reviewer1]
-    createUser (User rev2Id (Some reviewer2)) [CanActAs reviewer2]
-
-    submit requester do
-        createCmd DocumentReview with
-            requester
-            document = doc1
-            reviewer = reviewer1
-            expDate = date 2023 Jan 12
-            note = Some("")
-            state = OPEN  
-
+    createUser (User reqId (Some testRequester)) [CanActAs testRequester]  
+    createUser (User rev1Id (Some testReviewer1)) [CanActAs testReviewer1]
+    createUser (User rev2Id (Some testReviewer2)) [CanActAs testReviewer2]
+    
+    return ()
 

@@ -18,6 +18,16 @@ template DocumentReview
     signatory requester
     observer reviewer
 
+    key (requester, document): (Party, Document)
+    maintainer key._1
+
+    choice Approve: ()
+      controller reviewer
+      do 
+        archive self
+        return ()
+
+
 
 template Document
   with 
@@ -29,6 +39,44 @@ template Document
     signatory owner
     key (owner, name): (Party, Text)
     maintainer key._1
+
+    -- CHOICE: Open a review
+    nonconsuming choice OpenReview : ContractId DocumentReview
+      with
+        reviewer: Party
+        expDate: Date
+      controller owner
+      do
+        create DocumentReview with
+          requester = owner
+          document = this
+          reviewer 
+          expDate
+          note = None
+          state = OPEN
+
+    -- CHOICE Define a choice to change the content of the document and cancel related review if present
+    choice ChangeContentAndCancelReviews : ContractId Document
+      with
+        newContent: Text
+      controller owner
+      do
+        -- Create a copy of the current document with 0 approvals
+        newDocument <- create this with content = newContent, nApprovals = 0
+        -- Fetch all related DocumentReview contracts
+        maybeReviewId: Optional(ContractId DocumentReview) <- lookupByKey @DocumentReview (owner, this)
+
+        case maybeReviewId of
+          None -> 
+            return newDocument
+          Some reviewId  -> do
+             archive reviewId
+             return newDocument
+
+
+
+    
+
 
     
 
