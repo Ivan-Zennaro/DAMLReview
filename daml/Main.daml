@@ -25,6 +25,7 @@ template DocumentReview
     key (requester, document): (Party, Document)
     maintainer key._1
 
+    -- Approve document
     choice Approve: Either (Text) (ReviewId)
       controller reviewer
       do
@@ -44,7 +45,7 @@ template DocumentReview
             state = APPROVED
           return (Right updatedReview)
 
-
+    -- Write a review with a comment 
     choice Review: Either (Text) (ReviewId)
       with 
         comment: Text 
@@ -65,11 +66,13 @@ template DocumentReview
             state = IN_REVIEW
           return (Right updatedReview)
 
+    -- Close the review
     choice Close: ()
       controller reviewer
       do
         archive self
     
+    -- Get the status
     nonconsuming choice Status: ReviewState
       controller requester, reviewer
       do 
@@ -104,15 +107,13 @@ template Document
           note = None
           state = OPEN
 
-    -- CHOICE Define a choice to change the content of the document and cancel related review if present
+    -- Change the content of the document and cancel related review (if present)
     choice ChangeContentAndCancelReviews : DocumentId
       with
         newContent: Text
       controller owner
       do
-        -- Create a copy of the current document with 0 approvals
         newDocument <- create this with content = newContent
-        -- Fetch all related DocumentReview contracts
         maybeReviewId: Optional(ReviewId) <- lookupByKey @DocumentReview (owner, this)
 
         case maybeReviewId of
@@ -122,21 +123,12 @@ template Document
              archive reviewId
              return newDocument
 
-     -- Open a review for the current document
+     -- Get # words in the content of the document
     nonconsuming choice GetContentLength : Int
       controller owner
       do
         let wordsLength = DA.List.length (filter (/= "") (DA.Text.words this.content))
         return wordsLength
-        
-
-
-
-
-    
-
-
-    
 
 
 
