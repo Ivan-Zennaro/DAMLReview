@@ -5,7 +5,7 @@ import Setup
 import DA.Date
 import Daml.Script
 
-
+testCantCreateAnotherReview : Script ()
 testCantCreateAnotherReview = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
 
@@ -41,8 +41,6 @@ testChangeTextDocumentWithOpenReview = script do
 
     return ()
 
-
-
 testDocumentApprovedInTime : Script ()
 testDocumentApprovedInTime = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
@@ -54,7 +52,8 @@ testDocumentApprovedInTime = script do
         Right contractId -> do
             maybeContract <- queryContractId testRequester contractId
             case maybeContract of 
-                Some review -> do    
+                Some review -> do
+                    debug $ review.state    
                     assert (review.state == APPROVED)
                 None -> do 
                    fail "Fails: impossible to retrieve contract"
@@ -62,7 +61,6 @@ testDocumentApprovedInTime = script do
             fail "Fails: contract expired"
             
     return ()
-
 
 testDocumentApprovedOutOfTime : Script ()
 testDocumentApprovedOutOfTime = script do
@@ -79,7 +77,6 @@ testDocumentApprovedOutOfTime = script do
             debug "Contract is expired as expected"
             
     return ()
-
 
 testDocumentInReviewInTime : Script ()
 testDocumentInReviewInTime = script do
@@ -102,7 +99,6 @@ testDocumentInReviewInTime = script do
             
     return ()
 
-
 testDocumentInReviewOutOfTime : Script ()
 testDocumentInReviewOutOfTime = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
@@ -120,12 +116,11 @@ testDocumentInReviewOutOfTime = script do
             
     return ()
 
-
 testFailWhenWrongAprover : Script ()
 testFailWhenWrongAprover = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
 
     res <- submitMustFail testReviewer1 do
         exerciseCmd testReview2 Approve 
-   
+       
     return ()

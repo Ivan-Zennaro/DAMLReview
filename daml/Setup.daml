@@ -10,13 +10,12 @@ data TestParties = TestParties with
     testReviewer2: Party
 
 data TestDocuments = TestDocuments with
-    testDoc1: ContractId Document
-    testDoc2: ContractId Document
+    testDoc1: DocumentId
+    testDoc2: DocumentId
 
 data TestReviews = TestReviews with
-    testReview: ContractId DocumentReview
-    testReview2: ContractId DocumentReview
-
+    testReview: ReviewId
+    testReview2: ReviewId
 
 setupTestParties : Script TestParties
 setupTestParties = script do
@@ -57,19 +56,16 @@ setupReviews = script do
 
     return (testParties, TestDocuments with {testDoc1, testDoc2}, TestReviews with {testReview, testReview2})
 
-
-
 setupEnv : Script ()
 setupEnv = script do
     (testParties@TestParties{..}, testDocuments@TestDocuments{..}, testReviews@TestReviews{..}) <- setupReviews
 
     reqId <- validateUserId "Alice"   
-    rev1Id <- validateUserId "Prof. John"
-    rev2Id <- validateUserId "Prof. Mike"
+    rev1Id <- validateUserId "Prof_John"
+    rev2Id <- validateUserId "Prof_Mike"
 
     createUser (User reqId (Some testRequester)) [CanActAs testRequester]  
     createUser (User rev1Id (Some testReviewer1)) [CanActAs testReviewer1]
     createUser (User rev2Id (Some testReviewer2)) [CanActAs testReviewer2]
     
     return ()
-
